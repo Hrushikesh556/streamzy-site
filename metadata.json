@@ -1,0 +1,6 @@
+{
+  "name": "Streamzy - Watch Movies & TV Shows Free Online",
+  "description": "Streamzy is a high-speed, SEO-optimized OTT streaming movie and TV discovery platform with TMDB integration, genre directories, and full JSON-LD structured data.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

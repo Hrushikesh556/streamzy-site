@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta name="google-site-verification" content="i8c-usAghiuVOJGIRKBD6WzZTZZi2NnTrRgILAx1-Zk" />
+    <meta charset="UTF-8" />
+    <script>
+      (function() {
+        try {
+          if (typeof window !== 'undefined') {
+            var nativeFetch = window.fetch;
+            if (nativeFetch) {
+              var currentFetch = typeof nativeFetch === 'function' ? nativeFetch.bind(window) : nativeFetch;
+              try {
+                Object.defineProperty(window, 'fetch', {
+                  get: function() { return currentFetch; },
+                  set: function(fn) { currentFetch = fn; },
+                  configurable: true,
+                  enumerable: true
+                });
+              } catch (e) {
+                try {
+                  var proto = Object.getPrototypeOf(window) || window;
+                  Object.defineProperty(proto, 'fetch', {
+                    get: function() { return currentFetch; },
+                    set: function(fn) { currentFetch = fn; },
+                    configurable: true,
+                    enumerable: true
+                  });
+                } catch (e2) {}
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Fetch setter safeguard:', err);
+        }
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    <title>Streamzy - Watch Movies & TV Shows Free Online | Streamzy Official</title>
+    <meta name="description" content="Streamzy is the ultimate free online streaming discovery platform. Watch trending movies, TV shows, official trailers, and complete series online on Streamzy." />
+    <meta name="keywords" content="streamzy, streamzy movies, streamzy tv, watch movies on streamzy, streamzy online, streamzy streaming, streamzy official" />
+    <meta name="theme-color" content="#0b0f19" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Streamzy" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="preconnect" href="https://image.tmdb.org" />
+    <link rel="preconnect" href="https://api.themoviedb.org" />
+    <meta property="og:title" content="Streamzy - Free Movies & TV Shows Online" />
+    <meta property="og:description" content="Streamzy is the ultimate movie and TV series streaming guide. Explore top films, new releases, and full episodes online on Streamzy." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body class="bg-slate-950 text-slate-100 antialiased selection:bg-red-600 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    
+   <!-- Histats.com  (div with counter) --><div id="histats_counter"></div>
+<!-- Histats.com  START  (aync)-->
+<script type="text/javascript">var _Hasync= _Hasync|| [];
+_Hasync.push(['Histats.start', '1,5063823,4,502,95,18,00010000']);
+_Hasync.push(['Histats.fasi', '1']);
+_Hasync.push(['Histats.track_hits', '']);
+(function() {
+var hs = document.createElement('script'); hs.type = 'text/javascript'; hs.async = true;
+hs.src = ('//s10.histats.com/js15_as.js');
+(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(hs);
+})();</script>
+<noscript><a href="/" target="_blank"><img  src="//sstatic1.histats.com/0.gif?5063823&101" alt="site traffic analytics" border="0"></a></noscript>
+<!-- Histats.com  END  -->
+  </body>
+</html>
+
