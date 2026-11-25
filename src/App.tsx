@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { RouterProvider, useRouter } from './context/RouterContext';
 import { AppProvider, useApp } from './context/AppContext';
 import { SEO, updateHeadTags, getOrigin } from './services/seo';
@@ -219,6 +220,7 @@ export function App() {
     <RouterProvider>
       <AppProvider>
         <MainLayout />
+        <Analytics />
       </AppProvider>
     </RouterProvider>
   );
