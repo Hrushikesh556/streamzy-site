@@ -4,6 +4,7 @@ import { tmdb, GENRE_MAP } from '../services/tmdb';
 import { SEO, updateHeadTags, getOrigin } from '../services/seo';
 import { MediaItem } from '../types';
 import { MediaCard } from '../components/MediaCard';
+import { MediaGridSkeleton } from '../components/SkeletonLoaders';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { Pagination } from '../components/Pagination';
 import {
@@ -405,11 +406,7 @@ export const MoviesView: React.FC<MoviesViewProps> = ({ category = 'popular' }) 
 
       {/* Movie Grid */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {Array.from({ length: 18 }).map((_, i) => (
-            <div key={i} className="aspect-[2/3] rounded-xl bg-zinc-900 animate-pulse border border-white/5" />
-          ))}
-        </div>
+        <MediaGridSkeleton count={18} />
       ) : items.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {items.map((item, idx) => (

@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { MediaItem } from '../types';
 import { MediaCard } from './MediaCard';
+import { MediaCardSkeleton } from './SkeletonLoaders';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ContentRowProps {
@@ -11,6 +12,7 @@ interface ContentRowProps {
   type?: 'movie' | 'tv';
   isLoading?: boolean;
   showRank?: boolean;
+  isPriorityRow?: boolean;
 }
 
 export const ContentRow: React.FC<ContentRowProps> = ({
@@ -21,6 +23,7 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   type = 'movie',
   isLoading = false,
   showRank = true,
+  isPriorityRow = false,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -31,7 +34,11 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   };
 
   return (
-    <section className="mb-10 relative">
+    <section
+      className={`mb-10 relative ${
+        isPriorityRow ? '' : '[content-visibility:auto] [contain-intrinsic-size:0_380px]'
+      }`}
+    >
       {/* Row Header */}
       <div className="flex items-center justify-between mb-4 px-1">
         <div className="flex items-center gap-2.5">
@@ -76,16 +83,20 @@ export const ContentRow: React.FC<ContentRowProps> = ({
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {isLoading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="shrink-0 w-36 sm:w-44 md:w-48 aspect-[2/3] rounded-xl bg-zinc-900 animate-pulse border border-white/5"
-            />
+          Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="shrink-0 w-36 sm:w-44 md:w-48">
+              <MediaCardSkeleton />
+            </div>
           ))
         ) : items && items.length > 0 ? (
           items.map((item, idx) => (
             <div key={item.id} className="shrink-0 w-36 sm:w-44 md:w-48 snap-start">
-              <MediaCard item={item} type={type} rank={showRank ? idx + 1 : undefined} />
+              <MediaCard
+                item={item}
+                type={type}
+                rank={showRank ? idx + 1 : undefined}
+                priority={isPriorityRow && idx < 4}
+              />
             </div>
           ))
         ) : (

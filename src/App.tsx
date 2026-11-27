@@ -1,31 +1,41 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { RouterProvider, useRouter } from './context/RouterContext';
 import { AppProvider, useApp } from './context/AppContext';
 import { SEO, updateHeadTags, getOrigin } from './services/seo';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { BottomNav } from './components/BottomNav';
-import { PlayerModal } from './components/PlayerModal';
-import { QuickViewModal } from './components/QuickViewModal';
-import { BloggerExportModal } from './components/BloggerExportModal';
-
-// Views
 import { HomeView } from './views/HomeView';
-import { MoviesView } from './views/MoviesView';
-import { TVShowsView } from './views/TVShowsView';
-import { GenreView } from './views/GenreView';
-import { YearView } from './views/YearView';
-import { CountryView } from './views/CountryView';
-import { NetworkView } from './views/NetworkView';
-import { CollectionView } from './views/CollectionView';
-import { MovieDetailView } from './views/MovieDetailView';
-import { TVDetailView } from './views/TVDetailView';
-import { SeasonDetailView } from './views/SeasonDetailView';
-import { SearchView } from './views/SearchView';
-import { InfoPageView } from './views/InfoPageView';
-import { WatchlistView } from './views/WatchlistView';
-import { SitemapView } from './views/SitemapView';
-import { NotFoundView } from './views/NotFoundView';
+import { MediaGridSkeleton } from './components/SkeletonLoaders';
+
+// Lazy-loaded modals (not parsed until user opens them)
+const PlayerModal = lazy(() => import('./components/PlayerModal').then((m) => ({ default: m.PlayerModal })));
+const QuickViewModal = lazy(() => import('./components/QuickViewModal').then((m) => ({ default: m.QuickViewModal })));
+const BloggerExportModal = lazy(() => import('./components/BloggerExportModal').then((m) => ({ default: m.BloggerExportModal })));
+
+// Lazy-loaded secondary route views
+const MoviesView = lazy(() => import('./views/MoviesView').then((m) => ({ default: m.MoviesView })));
+const TVShowsView = lazy(() => import('./views/TVShowsView').then((m) => ({ default: m.TVShowsView })));
+const GenreView = lazy(() => import('./views/GenreView').then((m) => ({ default: m.GenreView })));
+const YearView = lazy(() => import('./views/YearView').then((m) => ({ default: m.YearView })));
+const CountryView = lazy(() => import('./views/CountryView').then((m) => ({ default: m.CountryView })));
+const NetworkView = lazy(() => import('./views/NetworkView').then((m) => ({ default: m.NetworkView })));
+const CollectionView = lazy(() => import('./views/CollectionView').then((m) => ({ default: m.CollectionView })));
+const MovieDetailView = lazy(() => import('./views/MovieDetailView').then((m) => ({ default: m.MovieDetailView })));
+const TVDetailView = lazy(() => import('./views/TVDetailView').then((m) => ({ default: m.TVDetailView })));
+const SeasonDetailView = lazy(() => import('./views/SeasonDetailView').then((m) => ({ default: m.SeasonDetailView })));
+const SearchView = lazy(() => import('./views/SearchView').then((m) => ({ default: m.SearchView })));
+const InfoPageView = lazy(() => import('./views/InfoPageView').then((m) => ({ default: m.InfoPageView })));
+const WatchlistView = lazy(() => import('./views/WatchlistView').then((m) => ({ default: m.WatchlistView })));
+const SitemapView = lazy(() => import('./views/SitemapView').then((m) => ({ default: m.SitemapView })));
+const NotFoundView = lazy(() => import('./views/NotFoundView').then((m) => ({ default: m.NotFoundView })));
+
+const RouteFallback: React.FC = () => (
+  <div className="space-y-8" aria-busy="true" aria-label="Loading page">
+    <div className="h-44 sm:h-52 w-full rounded-3xl skeleton-shimmer border border-white/10" />
+    <MediaGridSkeleton count={6} />
+  </div>
+);
 
 const RouteDispatcher: React.FC = () => {
   const { pathname } = useRouter();
@@ -168,7 +178,8 @@ const RouteMetadataWatcher: React.FC = () => {
 };
 
 const MainLayout: React.FC = () => {
-  const { toast } = useApp();
+  const { toasts, playerState, quickViewItem, isBloggerExportOpen } = useApp();
+  const toast = toasts && toasts.length > 0 ? toasts[toasts.length - 1] : null;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#060608] text-white selection:bg-cyan-500 selection:text-white font-['Outfit',sans-serif]">
@@ -180,7 +191,9 @@ const MainLayout: React.FC = () => {
 
       {/* Main Content Area with padding for BottomNav on mobile */}
       <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24 md:pb-12">
-        <RouteDispatcher />
+        <Suspense fallback={<RouteFallback />}>
+          <RouteDispatcher />
+        </Suspense>
       </main>
 
       {/* Global Footer with crawlable links */}
@@ -189,10 +202,12 @@ const MainLayout: React.FC = () => {
       {/* Mobile Bottom Navigation */}
       <BottomNav />
 
-      {/* Floating Modals */}
-      <PlayerModal />
-      <QuickViewModal />
-      <BloggerExportModal />
+      {/* Floating Modals (loaded on demand) */}
+      <Suspense fallback={null}>
+        {playerState.isOpen && <PlayerModal />}
+        {quickViewItem.isOpen && <QuickViewModal />}
+        {isBloggerExportOpen && <BloggerExportModal />}
+      </Suspense>
 
       {/* Toast Notification Container */}
       {toast && (

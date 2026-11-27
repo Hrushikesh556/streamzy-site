@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { TMDB_IMAGE, createSlug } from '../services/tmdb';
+import { LazyImage } from './LazyImage';
 import { X, Play, Youtube, Heart, Check, Star, Calendar, ExternalLink } from 'lucide-react';
 
 export const QuickViewModal: React.FC = () => {
@@ -17,8 +18,8 @@ export const QuickViewModal: React.FC = () => {
   const detailUrl = type === 'tv' ? `/tv/${slug}` : `/movie/${slug}`;
 
   const posterUrl = item.poster_path
-    ? `${TMDB_IMAGE.W500}${item.poster_path}`
-    : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=80';
+    ? `${TMDB_IMAGE.W342}${item.poster_path}`
+    : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=342&auto=format&fit=crop&q=75';
 
   return (
     <div
@@ -38,7 +39,13 @@ export const QuickViewModal: React.FC = () => {
 
         {/* Poster Column */}
         <div className="w-full md:w-2/5 aspect-[2/3] md:aspect-auto relative bg-zinc-900 shrink-0">
-          <img src={posterUrl} alt={title} className="w-full h-full object-cover" />
+          <LazyImage
+            src={posterUrl}
+            alt={title}
+            priority={true}
+            wrapperClassName="w-full h-full"
+            className="w-full h-full object-cover"
+          />
           <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/80 via-transparent to-transparent" />
         </div>
 

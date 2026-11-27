@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { MediaItem, SeasonDetail, EpisodeItem, SeasonSummary } from '../types';
 import { tmdb, TMDB_IMAGE, SERVERS } from '../services/tmdb';
+import { EpisodeGridSkeleton } from './SkeletonLoaders';
+import { LazyImage } from './LazyImage';
 import { useApp } from '../context/AppContext';
 import {
   Play,
@@ -272,11 +274,7 @@ export const SeasonEpisodeSelector: React.FC<SeasonEpisodeSelectorProps> = ({
       {/* Episodes Content Section */}
       <div className="pt-4">
         {loadingEpisodes ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse py-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={`skel-ep-${i}`} className="h-28 bg-zinc-800/40 rounded-xl border border-white/5" />
-            ))}
-          </div>
+          <EpisodeGridSkeleton />
         ) : filteredEpisodes.length === 0 ? (
           <div className="text-center py-10 space-y-2 text-zinc-400">
             <p className="text-sm font-semibold">No episodes match your search query.</p>
@@ -348,11 +346,11 @@ export const SeasonEpisodeSelector: React.FC<SeasonEpisodeSelectorProps> = ({
                 >
                   {/* Episode Still with play overlay */}
                   <div className="relative w-28 sm:w-32 aspect-video rounded-lg overflow-hidden bg-zinc-950 shrink-0 border border-white/10">
-                    <img
+                    <LazyImage
                       src={stillUrl}
                       alt={ep.name}
+                      wrapperClassName="w-full h-full"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
                     />
                     <div
                       className={`absolute inset-0 flex items-center justify-center transition-opacity ${

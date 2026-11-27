@@ -2,6 +2,7 @@ import React from 'react';
 import { MediaItem } from '../types';
 import { TMDB_IMAGE, createSlug } from '../services/tmdb';
 import { useApp } from '../context/AppContext';
+import { LazyImage } from './LazyImage';
 import { Play, Heart, Check, Info, Star } from 'lucide-react';
 
 interface MediaCardProps {
@@ -31,8 +32,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item, type = 'movie', rank
   };
 
   const posterUrl = item.poster_path
-    ? `${TMDB_IMAGE.W500}${item.poster_path}`
-    : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=80';
+    ? `${TMDB_IMAGE.W342}${item.poster_path}`
+    : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=342&auto=format&fit=crop&q=75';
 
   return (
     <article
@@ -44,12 +45,13 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item, type = 'movie', rank
         className="block relative aspect-[2/3] overflow-hidden bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-cyan-400"
         aria-label={`${title} (${year}) - View details`}
       >
-        <img
+        <LazyImage
           src={posterUrl}
           alt={`${title} (${year}) movie poster`}
-          loading={priority ? 'eager' : 'lazy'}
+          priority={priority}
           width="300"
           height="450"
+          wrapperClassName="w-full h-full"
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-106 group-hover:brightness-50"
         />
 

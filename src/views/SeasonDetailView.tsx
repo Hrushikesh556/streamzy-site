@@ -4,6 +4,8 @@ import { SEO, updateHeadTags, getOrigin } from '../services/seo';
 import { MediaItem, SeasonDetail } from '../types';
 import { useApp } from '../context/AppContext';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+import { SeasonDetailSkeleton } from '../components/SkeletonLoaders';
+import { LazyImage } from '../components/LazyImage';
 import {
   Play,
   Calendar,
@@ -60,12 +62,7 @@ export const SeasonDetailView: React.FC<SeasonDetailViewProps> = ({ slug, season
   }, [slug, seasonNum]);
 
   if (loading) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-6 w-64 bg-zinc-800 rounded-md" />
-        <div className="h-96 w-full bg-zinc-900 rounded-3xl" />
-      </div>
-    );
+    return <SeasonDetailSkeleton />;
   }
 
   if (!tv || !season) {
@@ -110,10 +107,12 @@ export const SeasonDetailView: React.FC<SeasonDetailViewProps> = ({ slug, season
       {/* Season Presentation Header */}
       <div className="p-6 sm:p-10 rounded-3xl bg-gradient-to-r from-zinc-900/90 via-zinc-900/60 to-zinc-950/90 border border-white/10 flex flex-col md:flex-row gap-6 items-start">
         {season.poster_path && (
-          <img
+          <LazyImage
             src={`${TMDB_IMAGE.W300}${season.poster_path}`}
             alt={`${showName} Season ${seasonNum}`}
-            className="w-36 aspect-[2/3] rounded-xl object-cover border border-white/15 shrink-0 shadow-lg"
+            priority={true}
+            wrapperClassName="w-36 aspect-[2/3] rounded-xl border border-white/15 shrink-0 shadow-lg"
+            className="w-full h-full object-cover"
           />
         )}
 
@@ -188,14 +187,15 @@ export const SeasonDetailView: React.FC<SeasonDetailViewProps> = ({ slug, season
               >
                 {/* Thumbnail still */}
                 <div className="relative w-full md:w-56 aspect-video rounded-xl bg-zinc-950 overflow-hidden shrink-0">
-                  <img
+                  <LazyImage
                     src={
                       ep.still_path
                         ? `${TMDB_IMAGE.W500}${ep.still_path}`
-                        : 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=500&auto=format&fit=crop&q=80'
+                        : 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=500&auto=format&fit=crop&q=75'
                     }
+                    fallbackSrc="https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=500&auto=format&fit=crop&q=75"
                     alt={`Episode ${ep.episode_number}: ${ep.name}`}
-                    loading="lazy"
+                    wrapperClassName="w-full h-full"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-black text-cyan-400">

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { tmdb, PLATFORMS } from '../services/tmdb';
+import { tmdb, PLATFORMS, TMDB_IMAGE, getCachedTMDBSync } from '../services/tmdb';
 import { SEO, updateHeadTags, getOrigin } from '../services/seo';
 import { MediaItem } from '../types';
 import { useApp } from '../context/AppContext';
@@ -15,18 +15,20 @@ import {
   Globe2,
   Trash2,
   Play,
-  CheckCircle2,
   HelpCircle,
-  Layers,
   Calendar,
 } from 'lucide-react';
 
 export const HomeView: React.FC = () => {
   const { continueWatch, removeContinueWatch, clearContinueWatch, openPlayer } = useApp();
 
-  const [trending, setTrending] = useState<MediaItem[]>([]);
-  const [nowPlaying, setNowPlaying] = useState<MediaItem[]>([]);
-  const [popularMovies, setPopularMovies] = useState<MediaItem[]>([]);
+  const cachedTrending = getCachedTMDBSync<{ results: MediaItem[] }>('/trending/all/week', { page: 1 })?.results || [];
+  const cachedNowPlaying = getCachedTMDBSync<{ results: MediaItem[] }>('/movie/now_playing', { page: 1 })?.results || [];
+  const cachedPopularMovies = getCachedTMDBSync<{ results: MediaItem[] }>('/movie/popular', { page: 1 })?.results || [];
+
+  const [trending, setTrending] = useState<MediaItem[]>(cachedTrending);
+  const [nowPlaying, setNowPlaying] = useState<MediaItem[]>(cachedNowPlaying);
+  const [popularMovies, setPopularMovies] = useState<MediaItem[]>(cachedPopularMovies);
   const [popularTV, setPopularTV] = useState<MediaItem[]>([]);
   const [topRated, setTopRated] = useState<MediaItem[]>([]);
   const [upcoming, setUpcoming] = useState<MediaItem[]>([]);
@@ -34,56 +36,72 @@ export const HomeView: React.FC = () => {
   const [hindi, setHindi] = useState<MediaItem[]>([]);
   const [korean, setKorean] = useState<MediaItem[]>([]);
   const [action, setAction] = useState<MediaItem[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const [loadingTop, setLoadingTop] = useState(cachedTrending.length === 0);
+  const [loadingBelowFold, setLoadingBelowFold] = useState(true);
 
   useEffect(() => {
     updateHeadTags(SEO.getHomeSEO(getOrigin()));
 
-    const loadHomeData = async () => {
-      setLoading(true);
-      try {
-        const [
-          trendingData,
-          nowPlayingData,
-          popMoviesData,
-          popTVData,
-          topRatedData,
-          upcomingData,
-          bengaliData,
-          hindiData,
-          koreanData,
-          actionData,
-        ] = await Promise.allSettled([
-          tmdb.getTrending('all', 'week', 1),
-          tmdb.getNowPlaying(1),
-          tmdb.getPopular('movie', 1),
-          tmdb.getPopular('tv', 1),
-          tmdb.getTopRated('movie', 1),
-          tmdb.getUpcoming(1),
-          tmdb.discover('movie', { withOriginalLanguage: 'bn' }),
-          tmdb.discover('movie', { withOriginalLanguage: 'hi' }),
-          tmdb.discover('tv', { withOriginalLanguage: 'ko' }),
-          tmdb.discover('movie', { withGenres: '28,53' }),
-        ]);
+    let active = true;
 
-        if (trendingData.status === 'fulfilled') setTrending(trendingData.value.results || []);
-        if (nowPlayingData.status === 'fulfilled') setNowPlaying(nowPlayingData.value.results || []);
-        if (popMoviesData.status === 'fulfilled') setPopularMovies(popMoviesData.value.results || []);
-        if (popTVData.status === 'fulfilled') setPopularTV(popTVData.value.results || []);
-        if (topRatedData.status === 'fulfilled') setTopRated(topRatedData.value.results || []);
-        if (upcomingData.status === 'fulfilled') setUpcoming(upcomingData.value.results || []);
-        if (bengaliData.status === 'fulfilled') setBengali(bengaliData.value.results || []);
-        if (hindiData.status === 'fulfilled') setHindi(hindiData.value.results || []);
-        if (koreanData.status === 'fulfilled') setKorean(koreanData.value.results || []);
-        if (actionData.status === 'fulfilled') setAction(actionData.value.results || []);
-      } catch (err) {
-        console.error('Home load error', err);
+    // Wave 1: Fire critical above-the-fold endpoints independently so Hero LCP never waits for slow rows
+    const trendingReq = tmdb.getTrending('all', 'week', 1).then((res) => {
+      if (!active) return;
+      setTrending(res.results || []);
+      setLoadingTop(false);
+    }).catch((err) => {
+      console.error('Trending load error', err);
+      if (active) setLoadingTop(false);
+    });
+
+    tmdb.getNowPlaying(1).then((res) => {
+      if (active) setNowPlaying(res.results || []);
+    }).catch(() => {});
+
+    tmdb.getPopular('movie', 1).then((res) => {
+      if (active) setPopularMovies(res.results || []);
+    }).catch(() => {});
+
+    // Wave 2: Defer below-the-fold sections until after trending resolves / first paint
+    let idleTimer: number | undefined;
+    const loadBelowFold = async () => {
+      if (!active) return;
+      try {
+        const tasks = [
+          tmdb.getPopular('tv', 1).then((r) => active && setPopularTV(r.results || [])),
+          tmdb.getTopRated('movie', 1).then((r) => active && setTopRated(r.results || [])),
+          tmdb.getUpcoming(1).then((r) => active && setUpcoming(r.results || [])),
+          tmdb.discover('movie', { withOriginalLanguage: 'bn' }).then((r) => active && setBengali(r.results || [])),
+          tmdb.discover('movie', { withOriginalLanguage: 'hi' }).then((r) => active && setHindi(r.results || [])),
+          tmdb.discover('tv', { withOriginalLanguage: 'ko' }).then((r) => active && setKorean(r.results || [])),
+          tmdb.discover('movie', { withGenres: '28,53' }).then((r) => active && setAction(r.results || [])),
+        ];
+        await Promise.allSettled(tasks);
       } finally {
-        setLoading(false);
+        if (active) setLoadingBelowFold(false);
       }
     };
 
-    loadHomeData();
+    trendingReq.finally(() => {
+      if (!active || typeof window === 'undefined') return;
+      if ('requestIdleCallback' in window) {
+        idleTimer = (window as any).requestIdleCallback(() => loadBelowFold(), { timeout: 250 });
+      } else {
+        idleTimer = globalThis.setTimeout(loadBelowFold, 60) as unknown as number;
+      }
+    });
+
+    return () => {
+      active = false;
+      if (idleTimer !== undefined && typeof window !== 'undefined') {
+        if ('cancelIdleCallback' in window) {
+          (window as any).cancelIdleCallback(idleTimer);
+        } else {
+          clearTimeout(idleTimer);
+        }
+      }
+    };
   }, []);
 
   return (
@@ -109,6 +127,8 @@ export const HomeView: React.FC = () => {
                 <img
                   src={platform.logo}
                   alt={platform.name}
+                  loading="lazy"
+                  decoding="async"
                   className={`h-4 max-w-[70px] object-contain ${platform.invert ? 'invert' : ''}`}
                 />
               ) : (
@@ -151,8 +171,10 @@ export const HomeView: React.FC = () => {
               >
                 <div className="relative aspect-video bg-zinc-950 overflow-hidden">
                   <img
-                    src={`https://image.tmdb.org/t/p/w500${item.poster}`}
+                    src={`${TMDB_IMAGE.W342}${item.poster}`}
                     alt={item.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 flex items-center justify-center transition-colors">
@@ -195,7 +217,8 @@ export const HomeView: React.FC = () => {
         items={trending}
         seeAllLink="/trending"
         icon={<Flame className="w-5 h-5" />}
-        isLoading={loading}
+        isLoading={loadingTop && trending.length === 0}
+        isPriorityRow={true}
       />
 
       <ContentRow
@@ -204,7 +227,7 @@ export const HomeView: React.FC = () => {
         seeAllLink="/now-playing"
         icon={<Clapperboard className="w-5 h-5" />}
         type="movie"
-        isLoading={loading}
+        isLoading={loadingTop && nowPlaying.length === 0}
       />
 
       <ContentRow
@@ -213,11 +236,11 @@ export const HomeView: React.FC = () => {
         seeAllLink="/movies"
         icon={<Film className="w-5 h-5" />}
         type="movie"
-        isLoading={loading}
+        isLoading={loadingTop && popularMovies.length === 0}
       />
 
       {/* Featured Collection Banner */}
-      <section className="my-10 relative rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-r from-purple-950/80 via-zinc-900/90 to-cyan-950/80 p-8 sm:p-10 shadow-2xl">
+      <section className="my-10 relative rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-r from-purple-950/80 via-zinc-900/90 to-cyan-950/80 p-8 sm:p-10 shadow-2xl [content-visibility:auto] [contain-intrinsic-size:0_260px]">
         <div className="max-w-xl space-y-3 relative z-10">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30">
             <Sparkles className="w-3.5 h-3.5" /> Curated Franchise
@@ -245,7 +268,7 @@ export const HomeView: React.FC = () => {
         seeAllLink="/tv-shows"
         icon={<Tv className="w-5 h-5" />}
         type="tv"
-        isLoading={loading}
+        isLoading={loadingBelowFold && popularTV.length === 0}
       />
 
       <ContentRow
@@ -254,7 +277,7 @@ export const HomeView: React.FC = () => {
         seeAllLink="/top-rated"
         icon={<Star className="w-5 h-5" />}
         type="movie"
-        isLoading={loading}
+        isLoading={loadingBelowFold && topRated.length === 0}
       />
 
       <ContentRow
@@ -263,7 +286,7 @@ export const HomeView: React.FC = () => {
         seeAllLink="/upcoming"
         icon={<Calendar className="w-5 h-5" />}
         type="movie"
-        isLoading={loading}
+        isLoading={loadingBelowFold && upcoming.length === 0}
       />
 
       {/* Language & Regional Showcases */}
@@ -273,7 +296,7 @@ export const HomeView: React.FC = () => {
         seeAllLink="/country/india"
         icon={<Globe2 className="w-5 h-5" />}
         type="movie"
-        isLoading={loading}
+        isLoading={loadingBelowFold && bengali.length === 0}
       />
 
       <ContentRow
@@ -282,7 +305,7 @@ export const HomeView: React.FC = () => {
         seeAllLink="/country/india"
         icon={<Globe2 className="w-5 h-5" />}
         type="movie"
-        isLoading={loading}
+        isLoading={loadingBelowFold && hindi.length === 0}
       />
 
       <ContentRow
@@ -291,7 +314,7 @@ export const HomeView: React.FC = () => {
         seeAllLink="/country/korea"
         icon={<Globe2 className="w-5 h-5" />}
         type="tv"
-        isLoading={loading}
+        isLoading={loadingBelowFold && korean.length === 0}
       />
 
       <ContentRow
@@ -300,7 +323,7 @@ export const HomeView: React.FC = () => {
         seeAllLink="/genres/action"
         icon={<Flame className="w-5 h-5" />}
         type="movie"
-        isLoading={loading}
+        isLoading={loadingBelowFold && action.length === 0}
       />
 
       {/* FAQ Section with Clean Markup for Humans & SEO */}

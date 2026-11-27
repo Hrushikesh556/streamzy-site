@@ -4,10 +4,12 @@ const API_KEY = '05902896074695709d7763505bb88b4d';
 const BASE_URL = 'https://api.themoviedb.org/3';
 
 export const TMDB_IMAGE = {
-  W500: 'https://image.tmdb.org/t/p/w500',
-  ORIGINAL: 'https://image.tmdb.org/t/p/original',
   W300: 'https://image.tmdb.org/t/p/w300',
+  W342: 'https://image.tmdb.org/t/p/w342',
+  W500: 'https://image.tmdb.org/t/p/w500',
   W780: 'https://image.tmdb.org/t/p/w780',
+  W1280: 'https://image.tmdb.org/t/p/w1280',
+  ORIGINAL: 'https://image.tmdb.org/t/p/original',
 };
 
 export const GENRE_MAP: Record<string, { id: number; name: string; type: 'movie' | 'tv' | 'both' }> = {
@@ -326,14 +328,65 @@ export function extractIdFromSlug(slug: string): number | null {
   return null;
 }
 
-// In-memory cache for API requests
+// In-memory + sessionStorage cache & in-flight deduplication for API requests
 const cache = new Map<string, { timestamp: number; data: any }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const inFlightRequests = new Map<string, Promise<any>>();
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const STORAGE_PREFIX = 'sz_tmdb_v1:';
+
+function readSessionCache<T>(key: string): T | null {
+  try {
+    if (typeof sessionStorage === 'undefined') return null;
+    const raw = sessionStorage.getItem(`${STORAGE_PREFIX}${key}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && Date.now() - parsed.timestamp < CACHE_TTL) {
+      return parsed.data as T;
+    }
+    sessionStorage.removeItem(`${STORAGE_PREFIX}${key}`);
+  } catch {
+    // Ignore storage quota or parse errors
+  }
+  return null;
+}
+
+function writeSessionCache(key: string, data: any): void {
+  try {
+    if (typeof sessionStorage === 'undefined') return;
+    sessionStorage.setItem(
+      `${STORAGE_PREFIX}${key}`,
+      JSON.stringify({ timestamp: Date.now(), data })
+    );
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+export function getCachedTMDBSync<T>(endpoint: string, params: Record<string, string | number | undefined> = {}): T | null {
+  const url = new URL(`${BASE_URL}${endpoint}`);
+  url.searchParams.set('api_key', API_KEY);
+  Object.entries(params).forEach(([key, val]) => {
+    if (val !== undefined && val !== null && val !== '') {
+      url.searchParams.set(key, String(val));
+    }
+  });
+  const cacheKey = url.toString();
+  const mem = cache.get(cacheKey);
+  if (mem && Date.now() - mem.timestamp < CACHE_TTL) {
+    return mem.data as T;
+  }
+  const sess = readSessionCache<T>(cacheKey);
+  if (sess) {
+    cache.set(cacheKey, { timestamp: Date.now(), data: sess });
+    return sess;
+  }
+  return null;
+}
 
 async function fetchTMDB<T>(endpoint: string, params: Record<string, string | number | undefined> = {}): Promise<T> {
   const url = new URL(`${BASE_URL}${endpoint}`);
   url.searchParams.set('api_key', API_KEY);
-  
+
   Object.entries(params).forEach(([key, val]) => {
     if (val !== undefined && val !== null && val !== '') {
       url.searchParams.set(key, String(val));
@@ -346,18 +399,37 @@ async function fetchTMDB<T>(endpoint: string, params: Record<string, string | nu
     return cached.data as T;
   }
 
-  try {
-    const res = await fetch(url.toString());
-    if (!res.ok) {
-      throw new Error(`TMDB HTTP error ${res.status}`);
-    }
-    const data = await res.json();
-    cache.set(cacheKey, { timestamp: Date.now(), data });
-    return data as T;
-  } catch (err) {
-    console.error(`TMDB fetch error for ${endpoint}:`, err);
-    throw err;
+  const sessCached = readSessionCache<T>(cacheKey);
+  if (sessCached) {
+    cache.set(cacheKey, { timestamp: Date.now(), data: sessCached });
+    return sessCached;
   }
+
+  const existingPromise = inFlightRequests.get(cacheKey);
+  if (existingPromise) {
+    return existingPromise as Promise<T>;
+  }
+
+  const requestPromise = (async () => {
+    try {
+      const res = await fetch(cacheKey);
+      if (!res.ok) {
+        throw new Error(`TMDB HTTP error ${res.status}`);
+      }
+      const data = await res.json();
+      cache.set(cacheKey, { timestamp: Date.now(), data });
+      writeSessionCache(cacheKey, data);
+      return data as T;
+    } catch (err) {
+      console.error(`TMDB fetch error for ${endpoint}:`, err);
+      throw err;
+    } finally {
+      inFlightRequests.delete(cacheKey);
+    }
+  })();
+
+  inFlightRequests.set(cacheKey, requestPromise);
+  return requestPromise;
 }
 
 export const tmdb = {

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MediaItem } from '../types';
 import { tmdb, TMDB_IMAGE, createSlug, GENRE_MAP } from '../services/tmdb';
 import { useApp } from '../context/AppContext';
+import { HeroSkeleton } from './SkeletonLoaders';
+import { LazyImage } from './LazyImage';
 import {
   Play,
   Info,
@@ -169,14 +171,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
   };
 
   if (isLoading) {
-    return (
-      <div className="relative w-full h-[62vh] min-h-[460px] max-h-[720px] rounded-2xl lg:rounded-3xl bg-zinc-900/60 border border-white/10 animate-pulse flex items-center justify-center mb-10 overflow-hidden">
-        <div className="flex flex-col items-center gap-3 text-zinc-500">
-          <Film className="w-10 h-10 animate-bounce text-cyan-400" />
-          <span className="text-sm font-semibold tracking-wider uppercase text-zinc-400">Loading Trending Movies...</span>
-        </div>
-      </div>
-    );
+    return <HeroSkeleton />;
   }
 
   if (!slides || slides.length === 0) return null;
@@ -193,14 +188,16 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
   const detailUrl = type === 'tv' ? `/tv/${slug}` : `/movie/${slug}`;
   const genres = getGenreNames(current.genre_ids);
 
-  const backdropUrl = current.backdrop_path
-    ? `${TMDB_IMAGE.ORIGINAL}${current.backdrop_path}`
-    : current.poster_path
-    ? `${TMDB_IMAGE.ORIGINAL}${current.poster_path}`
-    : 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1600&auto=format&fit=crop&q=80';
+  const backdropPath = current.backdrop_path || current.poster_path;
+  const backdropUrl = backdropPath
+    ? `${TMDB_IMAGE.W1280}${backdropPath}`
+    : 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1280&auto=format&fit=crop&q=75';
+  const backdropSrcSet = backdropPath
+    ? `${TMDB_IMAGE.W780}${backdropPath} 780w, ${TMDB_IMAGE.W1280}${backdropPath} 1280w`
+    : undefined;
 
   const posterUrl = current.poster_path
-    ? `${TMDB_IMAGE.W500}${current.poster_path}`
+    ? `${TMDB_IMAGE.W342}${current.poster_path}`
     : null;
 
   return (
@@ -217,12 +214,23 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
     >
       {/* Main Stage Frame */}
       <div className="relative w-full h-[65vh] min-h-[500px] max-h-[760px] rounded-2xl lg:rounded-3xl overflow-hidden shadow-2xl bg-zinc-950 border border-white/10">
-        {/* Animated Background Art with Zoom */}
+        {/* LCP Hero Backdrop Image (uses real <img> with fetchPriority="high" & responsive w780/w1280) */}
         <div
           key={`bg-${current.id}-${currentIndex}`}
-          className="absolute inset-0 bg-cover bg-center transition-all duration-1000 transform scale-105 group-hover:scale-100 animate-in fade-in"
-          style={{ backgroundImage: `url(${backdropUrl})` }}
+          className="absolute inset-0 overflow-hidden"
         >
+          <img
+            src={backdropUrl}
+            srcSet={backdropSrcSet}
+            sizes="(max-width: 768px) 100vw, 1280px"
+            alt={`${title} featured backdrop`}
+            width={1280}
+            height={720}
+            loading="eager"
+            decoding={currentIndex === 0 ? 'sync' : 'async'}
+            fetchPriority="high"
+            className="w-full h-full object-cover object-center transition-transform duration-1000 transform scale-105 group-hover:scale-100"
+          />
           {/* Multi-layered cinematic gradient shadows for high legibility */}
           <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/85 to-transparent w-full md:w-[75%] lg:w-[65%]" />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/30 to-black/40" />
@@ -357,8 +365,12 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                   <img
                     src={posterUrl}
                     alt={title}
+                    width={200}
+                    height={300}
                     className="w-full h-auto object-cover aspect-[2/3]"
                     loading="eager"
+                    decoding="async"
+                    fetchPriority="low"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover/poster:opacity-100 transition-opacity flex items-end p-3">
                     <span className="text-xs font-bold text-white flex items-center gap-1">
@@ -460,11 +472,13 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
               }`}
             >
               {thumbPoster && (
-                <img
+                <LazyImage
                   src={thumbPoster}
                   alt=""
-                  className="w-7 h-10 object-cover rounded-md flex-shrink-0"
-                  loading="lazy"
+                  width={28}
+                  height={40}
+                  wrapperClassName="w-7 h-10 rounded-md flex-shrink-0"
+                  className="w-7 h-10 object-cover rounded-md"
                 />
               )}
               <div className="truncate flex-1 min-w-0">

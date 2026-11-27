@@ -7,6 +7,8 @@ import { Breadcrumbs } from '../components/Breadcrumbs';
 import { MediaCard } from '../components/MediaCard';
 import { ContentRow } from '../components/ContentRow';
 import { SeasonEpisodeSelector } from '../components/SeasonEpisodeSelector';
+import { DetailPageSkeleton } from '../components/SkeletonLoaders';
+import { LazyImage } from '../components/LazyImage';
 import {
   Play,
   Youtube,
@@ -88,12 +90,7 @@ export const TVDetailView: React.FC<TVDetailViewProps> = ({ slug }) => {
   }, [slug]);
 
   if (loading) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-6 w-64 bg-zinc-800 rounded-md" />
-        <div className="h-96 w-full bg-zinc-900 rounded-3xl" />
-      </div>
-    );
+    return <DetailPageSkeleton />;
   }
 
   if (error || !tv) {
@@ -123,12 +120,12 @@ export const TVDetailView: React.FC<TVDetailViewProps> = ({ slug }) => {
   );
 
   const backdropUrl = tv.backdrop_path
-    ? `${TMDB_IMAGE.ORIGINAL}${tv.backdrop_path}`
-    : 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=1600&auto=format&fit=crop&q=80';
+    ? `${TMDB_IMAGE.W780}${tv.backdrop_path}`
+    : 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=780&auto=format&fit=crop&q=75';
 
   const posterUrl = tv.poster_path
-    ? `${TMDB_IMAGE.W500}${tv.poster_path}`
-    : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=80';
+    ? `${TMDB_IMAGE.W342}${tv.poster_path}`
+    : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=342&auto=format&fit=crop&q=75';
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -157,9 +154,11 @@ export const TVDetailView: React.FC<TVDetailViewProps> = ({ slug }) => {
         <div className="relative z-10 p-6 sm:p-10 lg:p-14 flex flex-col md:flex-row gap-8 lg:gap-12 items-start">
           {/* Poster Column */}
           <div className="w-48 sm:w-64 lg:w-72 aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl bg-zinc-900 border border-white/15 shrink-0 mx-auto md:mx-0">
-            <img
+            <LazyImage
               src={posterUrl}
               alt={`${name} ${year} series poster`}
+              priority={true}
+              wrapperClassName="w-full h-full"
               className="w-full h-full object-cover"
               width="300"
               height="450"
@@ -302,13 +301,14 @@ export const TVDetailView: React.FC<TVDetailViewProps> = ({ slug }) => {
                   className="p-4 rounded-2xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/10 hover:border-cyan-500/50 transition-all group flex gap-4 items-center"
                 >
                   <div className="w-16 h-24 rounded-lg bg-zinc-950 overflow-hidden shrink-0">
-                    <img
+                    <LazyImage
                       src={
                         s.poster_path
                           ? `${TMDB_IMAGE.W300}${s.poster_path}`
                           : posterUrl
                       }
                       alt={s.name}
+                      wrapperClassName="w-full h-full"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />
                   </div>
@@ -345,15 +345,16 @@ export const TVDetailView: React.FC<TVDetailViewProps> = ({ slug }) => {
                 key={cast.id}
                 className="p-3 rounded-xl bg-zinc-900/50 border border-white/5 space-y-2 text-center"
               >
-                <img
+                <LazyImage
                   src={
                     cast.profile_path
                       ? `${TMDB_IMAGE.W300}${cast.profile_path}`
-                      : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+                      : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=75'
                   }
+                  fallbackSrc="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=75"
                   alt={cast.name}
-                  loading="lazy"
-                  className="w-20 h-20 rounded-full object-cover mx-auto border-2 border-white/10"
+                  wrapperClassName="w-20 h-20 rounded-full mx-auto border-2 border-white/10"
+                  className="w-20 h-20 rounded-full object-cover"
                 />
                 <div>
                   <h4 className="text-xs font-bold text-white truncate">{cast.name}</h4>

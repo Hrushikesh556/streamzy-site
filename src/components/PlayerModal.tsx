@@ -21,6 +21,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { SeasonEpisodeSelector } from './SeasonEpisodeSelector';
+import { LazyImage } from './LazyImage';
 
 export const PlayerModal: React.FC = () => {
   const {
@@ -403,14 +404,15 @@ export const PlayerModal: React.FC = () => {
               {item.credits?.cast && item.credits.cast.length > 0 ? (
                 item.credits.cast.slice(0, 12).map((cast) => (
                   <div key={cast.id} className="shrink-0 w-24 text-center space-y-2">
-                    <img
+                    <LazyImage
                       src={
                         cast.profile_path
                           ? `${TMDB_IMAGE.W300}${cast.profile_path}`
-                          : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'
+                          : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=75'
                       }
                       alt={cast.name}
-                      className="w-16 h-16 rounded-full object-cover mx-auto border-2 border-white/10"
+                      wrapperClassName="w-16 h-16 rounded-full mx-auto border-2 border-white/10"
+                      className="w-16 h-16 rounded-full object-cover"
                     />
                     <div className="text-xs font-bold text-white truncate">{cast.name}</div>
                     <div className="text-[10px] text-zinc-400 truncate">{cast.character}</div>
@@ -432,9 +434,14 @@ export const PlayerModal: React.FC = () => {
                     className="text-left group space-y-1.5"
                   >
                     <div className="aspect-[2/3] rounded-lg overflow-hidden bg-zinc-900 border border-white/10 group-hover:border-cyan-500 transition-colors">
-                      <img
-                        src={`${TMDB_IMAGE.W300}${sim.poster_path}`}
+                      <LazyImage
+                        src={
+                          sim.poster_path
+                            ? `${TMDB_IMAGE.W342}${sim.poster_path}`
+                            : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=342&auto=format&fit=crop&q=75'
+                        }
                         alt={sim.title || sim.name || 'Poster'}
+                        wrapperClassName="w-full h-full"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>

@@ -349,6 +349,10 @@ export const Navbar: React.FC = () => {
                             <img
                               src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
                               alt={item.title || item.name || 'Poster'}
+                              loading="lazy"
+                              decoding="async"
+                              width={40}
+                              height={56}
                               className="w-10 h-14 object-cover rounded-md shrink-0 bg-zinc-800"
                             />
                             <div className="min-w-0 flex-1">
