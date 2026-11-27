@@ -144,7 +144,8 @@ export const PlayerModal: React.FC = () => {
             src={embedUrl}
             title={`${title} stream player`}
             allowFullScreen
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            referrerPolicy="origin"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             className="w-full h-full border-0"
           />
         </div>
@@ -155,14 +156,26 @@ export const PlayerModal: React.FC = () => {
             {/* Top Server Selection Strip */}
             <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-3">
               <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Server className="w-4 h-4 text-cyan-400" />
                   <span className="text-xs font-black uppercase tracking-wider text-white">
                     Streaming Servers ({SERVERS.length})
                   </span>
                   <span className="text-[11px] text-zinc-400 hidden sm:inline">
-                    • Switch if current server is slow
+                    • Switch server if current stream is slow or unavailable
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextIdx = (serverIndex + 1) % SERVERS.length;
+                      setPlayerServer(nextIdx);
+                      showToast(`Switched to ${SERVERS[nextIdx].name}`, 'info');
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-cyan-300 border border-white/10 hover:border-cyan-500/40 text-[11px] font-bold flex items-center gap-1 transition-colors"
+                  >
+                    <Zap className="w-3 h-3" />
+                    <span>Next Server</span>
+                  </button>
                 </div>
 
                 {/* TV Series Fast Prev / Next Controls */}
@@ -198,8 +211,8 @@ export const PlayerModal: React.FC = () => {
                 )}
               </div>
 
-              {/* 8 Streaming Server Options */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+              {/* Streaming Server Options Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-60 overflow-y-auto pr-1">
                 {SERVERS.map((srv, idx) => {
                   const isSelected = serverIndex === idx;
                   return (
@@ -210,20 +223,28 @@ export const PlayerModal: React.FC = () => {
                       className={`p-2 rounded-xl text-left transition-all border relative flex flex-col justify-between gap-1 group ${
                         isSelected
                           ? 'bg-gradient-to-b from-cyan-500/20 to-blue-600/30 border-cyan-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)] ring-1 ring-cyan-400'
+                          : srv.vip
+                          ? 'bg-zinc-950/80 hover:bg-zinc-800/90 text-zinc-200 border-amber-500/25 hover:border-amber-400/50'
                           : 'bg-zinc-950/60 hover:bg-zinc-800/80 text-zinc-300 border-white/10 hover:border-white/20'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-1">
                         <span className="text-xs font-black truncate">{srv.name}</span>
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            isSelected ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                            isSelected ? 'bg-emerald-400 animate-pulse' : srv.vip ? 'bg-amber-400' : 'bg-zinc-600'
                           }`}
                         />
                       </div>
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-cyan-400 font-bold">{srv.quality}</span>
-                        <span className="text-zinc-400">{srv.badge}</span>
+                      <div className="flex items-center justify-between gap-1 text-[10px]">
+                        <span className="text-cyan-400 font-bold shrink-0">{srv.quality}</span>
+                        <span
+                          className={`truncate font-semibold ${
+                            srv.vip ? 'text-amber-300' : 'text-zinc-400'
+                          }`}
+                        >
+                          {srv.badge}
+                        </span>
                       </div>
                     </button>
                   );
