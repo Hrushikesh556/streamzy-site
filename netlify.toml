@@ -6,3 +6,7 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Keeps the real index.html after UI-installed plugins (e.g. AMP SSR) rewrite it.
+[[plugins]]
+  package = "./netlify/plugins/restore-html"
